@@ -8,4 +8,5 @@ Source code files for I2C Slave projects
 | Title                | Description
 | ------------------- | --------------------------------------------------------  
 | Slave_A1B1 | Simple I2C Slave using the TWI hardware in an ATmega88A and an LED.  
-| Slave_A2B1 | Simple I2C Slave using the USI hardware in an ATtiny84A and an LED.  
+| Slave_A2B1 | Simple I2C Slave using the USI hardware in an ATtiny85 and an LED.  
+| Slave_A1B2 | Simple I2C Slave using the TWI hardware to read from an ATmega88A.  

@@ -21,42 +21,36 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *
- * Slave_A2B1.c
+ * Slave_A1B2.c
  *
- * Created: 1/28/2016	0.01	ndp
+ * Created: 1/29/2016 3:26:05 PM
  *  Author: Chip
  *
- * Demo code for Slave_A2B1 project.
- * Target: ATmega85 (by sure to set Project > Properties > Device to this AVR chip)
+ * Demo code for Slave_A1B2 project.
+ * Target: ATmega88A (by sure to set Project > Properties > Device to this AVR chip)
  * NOTE: Uncheck the CKDIV8 fuse to use an 8 MHz CPU clock.
  *
- * This code demonstrates a simple I2C Slave to control an LED.
+ * This code demonstrates a simple I2C Slave sending back data.
  *
  * The Commands from the Master are either:
- * SDA_W 00		- turn the LED OFF
- * SDA_W 01		- turn the LED ON
- * where SDA_W is the I2C address in Write Mode. [ i.e. (SLAVE_ADRS<<1)|0 ]
+ * SDA_R 		- read data
+ * where SDA_R is the I2C address in Read Mode. [ i.e. (SLAVE_ADRS<<1)|1 ]
  */ 
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
 
-#include "usiTwiSlave.h"
+#include "twiSlave.h"
 
 #define SLAVE_ADRS	0x40
 
-// LED hardware support
-#define LED_DDR		DDRB			// Port direction bit. 0:Input 1:output
-#define LED_PORT	PORTB			// Port being used.
-#define LED_P		PB1				// Port bit being used.
-
 int main(void)
 {
-	uint8_t data;
+	uint8_t count;
 
-	LED_DDR |= (1<<LED_P);			// Set LED pin as an output.
+	count = 0;
 	
-	usiTwiSlaveInit( SLAVE_ADRS );		// Initialize TWI hardware for Slave operation.
+	twiSlaveInit( SLAVE_ADRS );		// Initialize TWI hardware for Slave operation.
 	
 	sei();							// Enable interrupts.
 	
@@ -64,19 +58,11 @@ int main(void)
 	
     while(1)
     {
-		if( usiTwiDataInReceiveBuffer() )
+		if( !twiDataInTransmitBuffer() )
 		{
-			data = usiTwiReceiveByte();
-
-			// If the data is 00, then turn OFF the LED. Turn it ON for any non-zero value.			
-			if( data == 0)
-			{
-				LED_PORT &= ~(1<<LED_P);		// Turn LED OFF.
-			}
-			else
-			{
-				LED_PORT |= (1<<LED_P);			// Turn LED ON.
-			}
+			twiTransmitByte( count );		// stuff count into TxBuf[]
+			
+			++count;						// inc for next value.
 		}
     }
 }
