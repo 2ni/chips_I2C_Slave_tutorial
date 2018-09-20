@@ -33,7 +33,6 @@ Change Activity:
   26 Apr 2007  Fixed ACK of slave address on a read.
   27 May 2015  Added support for ATtiny24/44/84 and ATtiny24A/44A/84A devices.(ndp)
   23 Jan 2016  Added support functions used by twiSlave.c for interchangeability.(ndp)
-  29 Jan 2016  Add TxBuf[] test to support single read example. (ndp)
 
 ********************************************************************************/
 
@@ -47,131 +46,7 @@ Change Activity:
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
-#include "usiTwiSlave.h"
-
-/********************************************************************************
-
-                            device dependent defines
-
-********************************************************************************/
-
-#if defined( __AVR_ATtiny2313__ )
-#  define DDR_USI             DDRB
-#  define PORT_USI            PORTB
-#  define PIN_USI             PINB
-#  define PORT_USI_SDA        PB5
-#  define PORT_USI_SCL        PB7
-#  define PIN_USI_SDA         PINB5
-#  define PIN_USI_SCL         PINB7
-#  define USI_START_COND_INT  USISIF
-#  define USI_START_VECTOR    USI_START_vect
-#  define USI_OVERFLOW_VECTOR USI_OVERFLOW_vect
-#endif
-
-// added 5-27-2015 ndp..
-#if defined(__AVR_ATtiny24__) | defined(__AVR_ATtiny44__) | defined(__AVR_ATtiny84__)
-#define DDR_USI             DDRA
-#define PORT_USI            PORTA
-#define PIN_USI             PINA
-#define PORT_USI_SDA        PA6		//PORTA6..ndp
-#define PORT_USI_SCL        PA4		//PORTA4..ndp
-#define PIN_USI_SDA         PINA6
-#define PIN_USI_SCL         PINA4
-#define USI_START_COND_INT  USISIF
-#define USI_START_VECTOR    USI_START_vect
-#define USI_OVERFLOW_VECTOR USI_OVF_vect
-#endif
-
-// added 5-29-2015 ndp..
-#if defined(__AVR_ATtiny24A__) | defined(__AVR_ATtiny44A__) | defined(__AVR_ATtiny84A__)
-#define DDR_USI             DDRA
-#define PORT_USI            PORTA
-#define PIN_USI             PINA
-#define PORT_USI_SDA        PA6		//PORTA6..ndp
-#define PORT_USI_SCL        PA4		//PORTA4..ndp
-#define PIN_USI_SDA         PINA6
-#define PIN_USI_SCL         PINA4
-#define USI_START_COND_INT  USISIF
-#define USI_START_VECTOR    USI_STR_vect
-#define USI_OVERFLOW_VECTOR USI_OVF_vect
-#endif
-
-#if defined( __AVR_ATtiny25__ ) | \
-     defined( __AVR_ATtiny45__ ) | \
-     defined( __AVR_ATtiny85__ )
-#  define DDR_USI             DDRB
-#  define PORT_USI            PORTB
-#  define PIN_USI             PINB
-#  define PORT_USI_SDA        PB0
-#  define PORT_USI_SCL        PB2
-#  define PIN_USI_SDA         PINB0
-#  define PIN_USI_SCL         PINB2
-#  define USI_START_COND_INT  USISIF //was USICIF jjg
-#  define USI_START_VECTOR    USI_START_vect
-#  define USI_OVERFLOW_VECTOR USI_OVF_vect
-#endif
-
-#if defined( __AVR_ATtiny26__ )
-#  define DDR_USI             DDRB
-#  define PORT_USI            PORTB
-#  define PIN_USI             PINB
-#  define PORT_USI_SDA        PB0
-#  define PORT_USI_SCL        PB2
-#  define PIN_USI_SDA         PINB0
-#  define PIN_USI_SCL         PINB2
-#  define USI_START_COND_INT  USISIF
-#  define USI_START_VECTOR    USI_STRT_vect
-#  define USI_OVERFLOW_VECTOR USI_OVF_vect
-#endif
-
-#if defined( __AVR_ATtiny261__ ) | \
-     defined( __AVR_ATtiny461__ ) | \
-     defined( __AVR_ATtiny861__ )
-#  define DDR_USI             DDRB
-#  define PORT_USI            PORTB
-#  define PIN_USI             PINB
-#  define PORT_USI_SDA        PB0
-#  define PORT_USI_SCL        PB2
-#  define PIN_USI_SDA         PINB0
-#  define PIN_USI_SCL         PINB2
-#  define USI_START_COND_INT  USISIF
-#  define USI_START_VECTOR    USI_START_vect
-#  define USI_OVERFLOW_VECTOR USI_OVF_vect
-#endif
-
-#if defined( __AVR_ATmega165__ ) | \
-     defined( __AVR_ATmega325__ ) | \
-     defined( __AVR_ATmega3250__ ) | \
-     defined( __AVR_ATmega645__ ) | \
-     defined( __AVR_ATmega6450__ ) | \
-     defined( __AVR_ATmega329__ ) | \
-     defined( __AVR_ATmega3290__ )
-#  define DDR_USI             DDRE
-#  define PORT_USI            PORTE
-#  define PIN_USI             PINE
-#  define PORT_USI_SDA        PE5
-#  define PORT_USI_SCL        PE4
-#  define PIN_USI_SDA         PINE5
-#  define PIN_USI_SCL         PINE4
-#  define USI_START_COND_INT  USISIF
-#  define USI_START_VECTOR    USI_START_vect
-#  define USI_OVERFLOW_VECTOR USI_OVERFLOW_vect
-#endif
-
-#if defined( __AVR_ATmega169__ )
-#  define DDR_USI             DDRE
-#  define PORT_USI            PORTE
-#  define PIN_USI             PINE
-#  define PORT_USI_SDA        PE5
-#  define PORT_USI_SCL        PE4
-#  define PIN_USI_SDA         PINE5
-#  define PIN_USI_SCL         PINE4
-#  define USI_START_COND_INT  USISIF
-#  define USI_START_VECTOR    USI_START_vect
-#  define USI_OVERFLOW_VECTOR USI_OVERFLOW_vect
-#endif
-
-
+#include "i2c_slave.h"
 
 /********************************************************************************
 
@@ -315,12 +190,11 @@ flushTwiBuffers(
                                 public functions
 
 ********************************************************************************/
-// initialize USI for TWI slave mode
-void
-usiTwiSlaveInit(
-  uint8_t ownAddress
-)
-{
+/*
+ * Initialize USI for TWI slave mode and
+ * make slave ready to receive commands
+ */
+void i2cSlaveInit(uint8_t ownAddress) {
 
   flushTwiBuffers( );
 
@@ -343,15 +217,7 @@ usiTwiSlaveInit(
   // Set SDA as input
   DDR_USI &= ~( 1 << PORT_USI_SDA );
 
-} // end usiTwiSlaveInit
 
-/*
- * Enable I2C Slave
- * This is called to make the Slave ready to receive commands.
- */
-void
-usiTwiSlaveEnable(void)
-{
   USICR =
 	  // enable Start Condition Interrupt
 	  ( 1 << USISIE ) |
@@ -367,15 +233,11 @@ usiTwiSlaveEnable(void)
 
   // clear all interrupt flags and reset overflow counter
   USISR = ( 1 << USI_START_COND_INT ) | ( 1 << USIOIF ) | ( 1 << USIPF ) | ( 1 << USIDC );
-}
+} // end i2cSlaveInit
 
 // put data in the transmission buffer, wait if buffer is full
 
-void
-usiTwiTransmitByte(
-  uint8_t data
-)
-{
+void i2cTransmitByte(uint8_t data) {
 
   uint8_t tmphead;
 
@@ -391,17 +253,13 @@ usiTwiTransmitByte(
   // store new index
   txHead = tmphead;
 
-} // end usiTwiTransmitByte
+} // end i2cTransmitByte
 
 
 
 // return a byte from the receive buffer, wait if buffer is empty
 
-uint8_t
-usiTwiReceiveByte(
-  void
-)
-{
+uint8_t i2cReceiveByte(void) {
 
   // wait for Rx data
   while ( rxHead == rxTail );
@@ -412,33 +270,30 @@ usiTwiReceiveByte(
   // return data from the buffer.
   return rxBuf[ rxTail ];
 
-} // end usiTwiReceiveByte
+} // end i2cReceiveByte
 
 
 
 // check if there is data in the receive buffer
 
-bool
-usiTwiDataInReceiveBuffer(
-  void
-)
-{
+bool i2cDataInReceiveBuffer(void) {
 
   // return 0 (false) if the receive buffer is empty
   return rxHead != rxTail;
 
-} // end usiTwiDataInReceiveBuffer
+} // end i2cDataInReceiveBuffer
+
 
 /*
  * Check that prior data was been sent.
  * This function should return FALSE when a Read request is received.
  */
-bool
-usiTwiDataInTransmitBuffer( void )
-{
+bool i2cDataInTransmitBuffer(void) {
   // return 0 (false) if the transmit buffer is empty
   return txHead != txTail;
 }
+
+
 
 /********************************************************************************
 

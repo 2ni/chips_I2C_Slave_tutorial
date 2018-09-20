@@ -20,23 +20,46 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- *
- * function_tables.h
- *
- * Created: 8/08/2015	0.01	ndp
- *  Author: Chip
- *
- */ 
+ */
+ 
+/* Arduino A2B2 Demo */
 
+/*
+ * This demo code will read data from the Slave.
+ * The Slave will return an incremented count each time.
+ */
 
-#ifndef FUNCTION_TABLES_H_
-#define FUNCTION_TABLES_H_
+#include <Wire.h>
 
-#include "sysdefs.h"
-// MOD_FUNCTION_ENTRY,
+#define  SLAVE_ADRS  0x21    // MUST match AVR chip I2C address
 
-extern const MOD_FUNCTION_ENTRY mod_init_table[];
-extern const MOD_FUNCTION_ENTRY mod_service_table[];
-extern const MOD_ACCESS_ENTRY mod_access_table[];
+int slave = SLAVE_ADRS;      // has to be an int or a warning pops up.
 
-#endif /* FUNCTION_TABLES_H_ */
+void setup() {
+  Wire.begin();              // enable i2c bus support
+  Serial.begin(57600);       // Set BAUD rate
+}
+
+void loop() {
+  int data_len;
+
+  // Issues a SLA_R request and triggers N reads before NACKing Slave.
+  data_len = 1;
+  Wire.requestFrom(slave, data_len);  // request N bytes from (int)slave
+
+  while(!Wire.available());           // wait for first data byte.
+  unsigned char d = Wire.read();      // receive a byte as character.
+  Serial.print(d, HEX);
+  Serial.print(" ");
+
+  // Fluxh entire buffer of any other data
+  while(Wire.available())            // in case slave sends more or less than requested. Good for testing.  { 
+    d = Wire.read();                 // receive a byte as character.
+    Serial.print(d, HEX);
+    Serial.print(" ");
+  }
+  Serial.println("");
+
+  delay(1000);                       // wait for 1 second.
+}
+
